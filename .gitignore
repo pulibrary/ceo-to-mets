@@ -175,3 +175,5 @@ cython_debug/
 
 # Emacs
 *.*~
+
+demo_mets_output/
