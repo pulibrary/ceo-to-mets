@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 METS Generator for Daily Princetonian Issues
-Generates METS XML with article derivatives (JSON, HTML, TXT, PDF)
+Generates METS XML with article derivatives (JSON, HTML, TXT, PDF, ALTO)
 """
 
 import os
@@ -16,6 +16,7 @@ from generators.html_generator import HTMLGenerator
 from generators.pdf_generator import PDFGenerator
 from generators.txt_generator import TXTGenerator
 from generators.mods_generator import MODSGenerator
+from generators.alto_generator import ALTOGenerator
 
 class MESTGenerator:
     """Generate METS files for Daily Princetonian issues"""
@@ -125,6 +126,12 @@ class MESTGenerator:
         pdf_generator.generate(pdf_path)
         files['pdf'] = self._get_file_info(pdf_path, 'application/pdf')
 
+        # 5. ALTO - layout and text coordinate data using ALTOGenerator
+        alto_generator = ALTOGenerator(pdf_path, item)
+        alto_path = article_dir / f"article-{article_id}.alto.xml"
+        alto_generator.generate(alto_path)
+        files['alto'] = self._get_file_info(alto_path, 'application/xml+alto')
+
         return files
     
     def _get_file_info(self, file_path, mimetype):
@@ -221,7 +228,7 @@ class MESTGenerator:
                 TYPE='Content')
             
             # Add fptr for each format
-            for format_type in ['json', 'html', 'txt', 'pdf']:
+            for format_type in ['json', 'html', 'txt', 'pdf', 'alto']:
                 file_id = f"FILE{idx}_{format_type.upper()}"
                 fptr = etree.SubElement(content_div, METS + 'fptr',
                     FILEID=file_id)
