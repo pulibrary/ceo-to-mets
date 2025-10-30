@@ -100,8 +100,23 @@ class ALTOGenerator:
 
                 blocks = []
 
-                # Extract text with detailed layout information
+                # Extract text with detailed layout information using dict format
+                # to get block and line structure, then use words for word-level detail
                 text_dict = page.get_text("dict")
+
+                # Also get word-level information
+                words = page.get_text("words")  # Returns list of (x0, y0, x1, y1, "word", block_no, line_no, word_no)
+
+                # Build a mapping of (block_no, line_no) -> list of word tuples
+                from collections import defaultdict
+                word_map = defaultdict(list)
+                for word_tuple in words:
+                    if len(word_tuple) >= 7:
+                        x0, y0, x1, y1, word_text, block_no, line_no = word_tuple[:7]
+                        word_map[(block_no, line_no)].append({
+                            'text': word_text,
+                            'bbox': [x0, y0, x1, y1]
+                        })
 
                 for block in text_dict.get("blocks", []):
                     if block.get("type") != 0:  # Skip non-text blocks
@@ -109,27 +124,76 @@ class ALTOGenerator:
 
                     lines = []
                     block_bbox = block.get("bbox", [0, 0, 0, 0])
+                    block_no = block.get("number", 0)
 
-                    for line in block.get("lines", []):
+                    for line_idx, line in enumerate(block.get("lines", [])):
                         strings = []
                         line_bbox = line.get("bbox", [0, 0, 0, 0])
 
-                        for span in line.get("spans", []):
-                            text = span.get("text", "").strip()
-                            if not text:
-                                continue
+                        # Get words for this line from the word map
+                        line_words = word_map.get((block_no, line_idx), [])
 
-                            bbox = span.get("bbox", [0, 0, 0, 0])
+                        if line_words:
+                            # Use word-level segmentation
+                            for word_info in line_words:
+                                word_text = word_info['text'].strip()
+                                if not word_text:
+                                    continue
 
-                            alto_string = ALTOString(
-                                content=text,
-                                hpos=bbox[0],
-                                vpos=bbox[1],
-                                width=bbox[2] - bbox[0],
-                                height=bbox[3] - bbox[1],
-                                wc=1.0
-                            )
-                            strings.append(alto_string)
+                                bbox = word_info['bbox']
+                                alto_string = ALTOString(
+                                    content=word_text,
+                                    hpos=bbox[0],
+                                    vpos=bbox[1],
+                                    width=bbox[2] - bbox[0],
+                                    height=bbox[3] - bbox[1],
+                                    wc=1.0
+                                )
+                                strings.append(alto_string)
+                        else:
+                            # Fallback: split span text into words manually
+                            for span in line.get("spans", []):
+                                text = span.get("text", "").strip()
+                                if not text:
+                                    continue
+
+                                bbox = span.get("bbox", [0, 0, 0, 0])
+                                span_width = bbox[2] - bbox[0]
+
+                                # Split text into words
+                                words_in_span = text.split()
+                                if len(words_in_span) == 1:
+                                    # Single word, use full span bbox
+                                    alto_string = ALTOString(
+                                        content=text,
+                                        hpos=bbox[0],
+                                        vpos=bbox[1],
+                                        width=span_width,
+                                        height=bbox[3] - bbox[1],
+                                        wc=1.0
+                                    )
+                                    strings.append(alto_string)
+                                else:
+                                    # Multiple words, estimate positions
+                                    total_chars = sum(len(w) for w in words_in_span)
+                                    current_x = bbox[0]
+
+                                    for word in words_in_span:
+                                        # Estimate word width based on character count
+                                        word_width = (len(word) / total_chars) * span_width * 0.9  # 0.9 to account for spaces
+
+                                        alto_string = ALTOString(
+                                            content=word,
+                                            hpos=current_x,
+                                            vpos=bbox[1],
+                                            width=word_width,
+                                            height=bbox[3] - bbox[1],
+                                            wc=1.0
+                                        )
+                                        strings.append(alto_string)
+
+                                        # Move to next word position (word width + space)
+                                        current_x += word_width + (span_width * 0.1 / len(words_in_span))
 
                         if strings:
                             alto_line = ALTOTextLine(
@@ -251,10 +315,15 @@ class ALTOGenerator:
                         WIDTH=f"{line.width:.2f}"
                     )
 
-                    for string_idx, string in enumerate(line.strings, 1):
+                    # Track element indices for String and SP elements
+                    element_idx = 1
+                    sp_idx = 1
+
+                    for string_idx, string in enumerate(line.strings):
+                        # Add String element
                         string_elem = etree.SubElement(
                             text_line, f"{{{self.ALTO_NAMESPACE}}}String",
-                            ID=f"S_{alto_page.page_number}_{block_idx}_{line_idx}_{string_idx}",
+                            ID=f"P{alto_page.page_number}_ST{element_idx:05d}",
                             CONTENT=string.content,
                             HPOS=f"{string.hpos:.2f}",
                             VPOS=f"{string.vpos:.2f}",
@@ -262,6 +331,24 @@ class ALTOGenerator:
                             WIDTH=f"{string.width:.2f}",
                             WC=f"{string.wc:.2f}"
                         )
+                        element_idx += 1
+
+                        # Add SP (space) element between words (but not after the last word)
+                        if string_idx < len(line.strings) - 1:
+                            next_string = line.strings[string_idx + 1]
+                            # Calculate space position and width
+                            space_hpos = string.hpos + string.width
+                            space_width = next_string.hpos - space_hpos
+                            # Only add SP if there's a meaningful gap
+                            if space_width > 0:
+                                sp_elem = etree.SubElement(
+                                    text_line, f"{{{self.ALTO_NAMESPACE}}}SP",
+                                    ID=f"P{alto_page.page_number}_SP{sp_idx:05d}",
+                                    HPOS=f"{space_hpos:.2f}",
+                                    VPOS=f"{string.vpos:.2f}",
+                                    WIDTH=f"{space_width:.2f}"
+                                )
+                                sp_idx += 1
 
         return alto
 

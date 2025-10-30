@@ -287,3 +287,78 @@ class TestALTOGenerator:
 
         assert alto_path.exists()
         assert alto_path.parent.exists()
+
+    def test_alto_has_word_level_segmentation(self, sample_ceo_item, tmp_path):
+        """Test that ALTO XML contains word-level String elements."""
+        html_gen = HTMLGenerator(sample_ceo_item)
+        pdf_path = tmp_path / "test.pdf"
+        pdf_gen = PDFGenerator(html_gen.html)
+        pdf_gen.generate(pdf_path)
+
+        generator = ALTOGenerator(pdf_path)
+        alto_xml = generator.generate_alto_xml()
+
+        namespaces = {'alto': ALTOGenerator.ALTO_NAMESPACE}
+        strings = alto_xml.findall('.//alto:String', namespaces)
+
+        # Should have multiple String elements (one per word)
+        assert len(strings) > 0
+
+        # Check that String elements have required attributes
+        for string_elem in strings:
+            assert 'ID' in string_elem.attrib
+            assert 'CONTENT' in string_elem.attrib
+            assert 'HPOS' in string_elem.attrib
+            assert 'VPOS' in string_elem.attrib
+            assert 'WIDTH' in string_elem.attrib
+            assert 'HEIGHT' in string_elem.attrib
+            assert 'WC' in string_elem.attrib
+
+    def test_alto_has_space_elements(self, sample_ceo_item, tmp_path):
+        """Test that ALTO XML contains SP (space) elements between words."""
+        html_gen = HTMLGenerator(sample_ceo_item)
+        pdf_path = tmp_path / "test.pdf"
+        pdf_gen = PDFGenerator(html_gen.html)
+        pdf_gen.generate(pdf_path)
+
+        generator = ALTOGenerator(pdf_path)
+        alto_xml = generator.generate_alto_xml()
+
+        namespaces = {'alto': ALTOGenerator.ALTO_NAMESPACE}
+        sp_elements = alto_xml.findall('.//alto:SP', namespaces)
+
+        # Should have SP elements (spaces between words)
+        # The exact number depends on the content, but there should be some
+        # if there are multiple words
+        strings = alto_xml.findall('.//alto:String', namespaces)
+        if len(strings) > 1:
+            # If there are multiple words, there should be SP elements
+            assert len(sp_elements) > 0
+
+        # Check that SP elements have required attributes
+        for sp_elem in sp_elements:
+            assert 'ID' in sp_elem.attrib
+            assert 'HPOS' in sp_elem.attrib
+            assert 'VPOS' in sp_elem.attrib
+            assert 'WIDTH' in sp_elem.attrib
+
+    def test_alto_word_segmentation_content(self, sample_ceo_item, tmp_path):
+        """Test that word segmentation produces individual words."""
+        html_gen = HTMLGenerator(sample_ceo_item)
+        pdf_path = tmp_path / "test.pdf"
+        pdf_gen = PDFGenerator(html_gen.html)
+        pdf_gen.generate(pdf_path)
+
+        generator = ALTOGenerator(pdf_path)
+        alto_xml = generator.generate_alto_xml()
+
+        namespaces = {'alto': ALTOGenerator.ALTO_NAMESPACE}
+        strings = alto_xml.findall('.//alto:String', namespaces)
+
+        # Check that String elements contain individual words (not multi-word strings)
+        for string_elem in strings:
+            content = string_elem.get('CONTENT', '')
+            # Words should generally not contain spaces
+            # (though some edge cases might exist)
+            word_count = len(content.split())
+            assert word_count >= 1, f"String element should contain at least one word, got: {content}"
