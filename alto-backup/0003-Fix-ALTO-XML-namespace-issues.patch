@@ -1,0 +1,134 @@
+From 832766ab8bb5b20fc9483e7a381317b2169c1b15 Mon Sep 17 00:00:00 2001
+From: Cliff Wulfman <cwulfman@princeton.edu>
+Date: Thu, 30 Oct 2025 12:25:21 +0000
+Subject: [PATCH 3/3] Fix ALTO XML namespace issues
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Fix two namespace-related issues in ALTO generator:
+1. Remove duplicate xmlns attribute declaration (was in both nsmap and attrib)
+2. Add proper namespace prefixes to all XML elements
+
+This fixes test failures where:
+- Elements couldn't be found because they lacked namespace
+- XML parsing failed due to "Attribute xmlns redefined" error
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+Co-authored-by: Sculptor <sculptor@imbue.com>
+---
+ src/generators/alto_generator.py | 38 +++++++++++++++++---------------
+ 1 file changed, 20 insertions(+), 18 deletions(-)
+
+diff --git a/src/generators/alto_generator.py b/src/generators/alto_generator.py
+index b42a817..e9c43df 100644
+--- a/src/generators/alto_generator.py
++++ b/src/generators/alto_generator.py
+@@ -171,14 +171,16 @@ class ALTOGenerator:
+         """
+         pages = self.extract_layout_from_pdf()
+ 
+-        nsmap = {None: self.ALTO_NAMESPACE}
++        nsmap = {
++            None: self.ALTO_NAMESPACE,
++            'xsi': 'http://www.w3.org/2001/XMLSchema-instance'
++        }
+ 
+         # Root element
+         alto = etree.Element(
+-            "alto",
++            f"{{{self.ALTO_NAMESPACE}}}alto",
+             nsmap=nsmap,
+             attrib={
+-                "xmlns": self.ALTO_NAMESPACE,
+                 "{http://www.w3.org/2001/XMLSchema-instance}schemaLocation":
+                     f"{self.ALTO_NAMESPACE} "
+                     "http://www.loc.gov/standards/alto/v4/alto-4-4.xsd"
+@@ -186,35 +188,35 @@ class ALTOGenerator:
+         )
+ 
+         # Description section
+-        description = etree.SubElement(alto, "Description")
++        description = etree.SubElement(alto, f"{{{self.ALTO_NAMESPACE}}}Description")
+ 
+-        measurement_unit = etree.SubElement(description, "MeasurementUnit")
++        measurement_unit = etree.SubElement(description, f"{{{self.ALTO_NAMESPACE}}}MeasurementUnit")
+         measurement_unit.text = "pixel"
+ 
+-        source_image_info = etree.SubElement(description, "sourceImageInformation")
+-        file_name = etree.SubElement(source_image_info, "fileName")
++        source_image_info = etree.SubElement(description, f"{{{self.ALTO_NAMESPACE}}}sourceImageInformation")
++        file_name = etree.SubElement(source_image_info, f"{{{self.ALTO_NAMESPACE}}}fileName")
+         file_name.text = self.pdf_path.name
+ 
+         # Processing software info
+-        processing = etree.SubElement(description, "Processing")
++        processing = etree.SubElement(description, f"{{{self.ALTO_NAMESPACE}}}Processing")
+         processing.set("ID", "PROC1")
+ 
+-        processing_software = etree.SubElement(processing, "processingSoftware")
+-        software_creator = etree.SubElement(processing_software, "softwareCreator")
++        processing_software = etree.SubElement(processing, f"{{{self.ALTO_NAMESPACE}}}processingSoftware")
++        software_creator = etree.SubElement(processing_software, f"{{{self.ALTO_NAMESPACE}}}softwareCreator")
+         software_creator.text = "Daily Princetonian METS Generator"
+ 
+-        software_name = etree.SubElement(processing_software, "softwareName")
++        software_name = etree.SubElement(processing_software, f"{{{self.ALTO_NAMESPACE}}}softwareName")
+         software_name.text = "ALTOGenerator"
+ 
+-        software_version = etree.SubElement(processing_software, "softwareVersion")
++        software_version = etree.SubElement(processing_software, f"{{{self.ALTO_NAMESPACE}}}softwareVersion")
+         software_version.text = "1.0"
+ 
+         # Layout section
+-        layout = etree.SubElement(alto, "Layout")
++        layout = etree.SubElement(alto, f"{{{self.ALTO_NAMESPACE}}}Layout")
+ 
+         for alto_page in pages:
+             page_elem = etree.SubElement(
+-                layout, "Page",
++                layout, f"{{{self.ALTO_NAMESPACE}}}Page",
+                 ID=f"PAGE_{alto_page.page_number}",
+                 PHYSICAL_IMG_NR=str(alto_page.page_number),
+                 HEIGHT=f"{alto_page.height:.2f}",
+@@ -222,7 +224,7 @@ class ALTOGenerator:
+             )
+ 
+             print_space = etree.SubElement(
+-                page_elem, "PrintSpace",
++                page_elem, f"{{{self.ALTO_NAMESPACE}}}PrintSpace",
+                 HPOS="0",
+                 VPOS="0",
+                 HEIGHT=f"{alto_page.height:.2f}",
+@@ -231,7 +233,7 @@ class ALTOGenerator:
+ 
+             for block_idx, block in enumerate(alto_page.blocks, 1):
+                 text_block = etree.SubElement(
+-                    print_space, "TextBlock",
++                    print_space, f"{{{self.ALTO_NAMESPACE}}}TextBlock",
+                     ID=f"TB_{alto_page.page_number}_{block_idx}",
+                     HPOS=f"{block.hpos:.2f}",
+                     VPOS=f"{block.vpos:.2f}",
+@@ -241,7 +243,7 @@ class ALTOGenerator:
+ 
+                 for line_idx, line in enumerate(block.lines, 1):
+                     text_line = etree.SubElement(
+-                        text_block, "TextLine",
++                        text_block, f"{{{self.ALTO_NAMESPACE}}}TextLine",
+                         ID=f"TL_{alto_page.page_number}_{block_idx}_{line_idx}",
+                         HPOS=f"{line.hpos:.2f}",
+                         VPOS=f"{line.vpos:.2f}",
+@@ -251,7 +253,7 @@ class ALTOGenerator:
+ 
+                     for string_idx, string in enumerate(line.strings, 1):
+                         string_elem = etree.SubElement(
+-                            text_line, "String",
++                            text_line, f"{{{self.ALTO_NAMESPACE}}}String",
+                             ID=f"S_{alto_page.page_number}_{block_idx}_{line_idx}_{string_idx}",
+                             CONTENT=string.content,
+                             HPOS=f"{string.hpos:.2f}",
+-- 
+2.43.0
+

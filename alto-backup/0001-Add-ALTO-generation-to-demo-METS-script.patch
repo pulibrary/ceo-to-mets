@@ -1,0 +1,85 @@
+From 2db1393a52c43d57598aa4ab1d9b502858063595 Mon Sep 17 00:00:00 2001
+From: Cliff Wulfman <cwulfman@princeton.edu>
+Date: Thu, 30 Oct 2025 11:56:58 +0000
+Subject: [PATCH 1/3] Add ALTO generation to demo METS script
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Update create_demo_mets.py to generate ALTO XML files for each article:
+- Import ALTOGenerator
+- Generate ALTO files in generate_derivatives()
+- Include ALTO in METS structMap
+- Update output messages to reflect ALTO generation
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+Co-authored-by: Sculptor <sculptor@imbue.com>
+---
+ create_demo_mets.py | 14 +++++++++++---
+ 1 file changed, 11 insertions(+), 3 deletions(-)
+
+diff --git a/create_demo_mets.py b/create_demo_mets.py
+index 44d0f88..0eedb29 100755
+--- a/create_demo_mets.py
++++ b/create_demo_mets.py
+@@ -17,6 +17,7 @@ from generators.html_generator import HTMLGenerator
+ from generators.pdf_generator import PDFGenerator
+ from generators.txt_generator import TXTGenerator
+ from generators.mods_generator import MODSGenerator
++from generators.alto_generator import ALTOGenerator
+ 
+ import os
+ import json
+@@ -206,7 +207,7 @@ def create_sample_articles():
+ 
+ 
+ def generate_derivatives(article, article_dir):
+-    """Generate JSON, HTML, TXT, and PDF derivatives for an article."""
++    """Generate JSON, HTML, TXT, PDF, and ALTO derivatives for an article."""
+     files = {}
+     article_id = article.id
+ 
+@@ -236,6 +237,12 @@ def generate_derivatives(article, article_dir):
+     pdf_generator.generate(pdf_path)
+     files['pdf'] = get_file_info(pdf_path, 'application/pdf')
+ 
++    # 5. ALTO - layout and text coordinates
++    alto_generator = ALTOGenerator(pdf_path, article)
++    alto_path = article_dir / f"article-{article_id}.alto.xml"
++    alto_generator.generate(alto_path)
++    files['alto'] = get_file_info(alto_path, 'application/xml+alto')
++
+     return files
+ 
+ 
+@@ -339,7 +346,7 @@ def generate_mets(date_str, article_data, mets_path):
+             TYPE='Content')
+ 
+         # Add fptr for each format
+-        for format_type in ['json', 'html', 'txt', 'pdf']:
++        for format_type in ['json', 'html', 'txt', 'pdf', 'alto']:
+             file_id = f"FILE{idx}_{format_type.upper()}"
+             fptr = etree.SubElement(content_div, METS + 'fptr',
+                 FILEID=file_id)
+@@ -405,7 +412,7 @@ def main():
+             'files': files,
+             'article_dir': article_dir
+         })
+-        print(f"  ✓ Generated JSON, HTML, TXT, PDF")
++        print(f"  ✓ Generated JSON, HTML, TXT, PDF, ALTO")
+ 
+     print()
+ 
+@@ -431,6 +438,7 @@ def main():
+     print("  • HTML - Formatted article for web viewing")
+     print("  • TXT - Plain text extraction")
+     print("  • PDF - Formatted PDF document")
++    print("  • ALTO - Layout and text coordinates (XML)")
+     print()
+     print("You can explore the package structure and study the METS XML format.")
+     print("=" * 70)
+-- 
+2.43.0
+

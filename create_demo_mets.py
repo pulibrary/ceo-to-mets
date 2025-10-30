@@ -17,6 +17,7 @@ from generators.html_generator import HTMLGenerator
 from generators.pdf_generator import PDFGenerator
 from generators.txt_generator import TXTGenerator
 from generators.mods_generator import MODSGenerator
+from generators.alto_generator import ALTOGenerator
 
 import os
 import json
@@ -206,7 +207,7 @@ def create_sample_articles():
 
 
 def generate_derivatives(article, article_dir):
-    """Generate JSON, HTML, TXT, and PDF derivatives for an article."""
+    """Generate JSON, HTML, TXT, PDF, and ALTO derivatives for an article."""
     files = {}
     article_id = article.id
 
@@ -235,6 +236,12 @@ def generate_derivatives(article, article_dir):
     pdf_path = article_dir / f"article-{article_id}.pdf"
     pdf_generator.generate(pdf_path)
     files['pdf'] = get_file_info(pdf_path, 'application/pdf')
+
+    # 5. ALTO - layout and text coordinates
+    alto_generator = ALTOGenerator(pdf_path, article)
+    alto_path = article_dir / f"article-{article_id}.alto.xml"
+    alto_generator.generate(alto_path)
+    files['alto'] = get_file_info(alto_path, 'application/xml+alto')
 
     return files
 
@@ -339,7 +346,7 @@ def generate_mets(date_str, article_data, mets_path):
             TYPE='Content')
 
         # Add fptr for each format
-        for format_type in ['json', 'html', 'txt', 'pdf']:
+        for format_type in ['json', 'html', 'txt', 'pdf', 'alto']:
             file_id = f"FILE{idx}_{format_type.upper()}"
             fptr = etree.SubElement(content_div, METS + 'fptr',
                 FILEID=file_id)
@@ -405,7 +412,7 @@ def main():
             'files': files,
             'article_dir': article_dir
         })
-        print(f"  ✓ Generated JSON, HTML, TXT, PDF")
+        print(f"  ✓ Generated JSON, HTML, TXT, PDF, ALTO")
 
     print()
 
@@ -431,6 +438,7 @@ def main():
     print("  • HTML - Formatted article for web viewing")
     print("  • TXT - Plain text extraction")
     print("  • PDF - Formatted PDF document")
+    print("  • ALTO - Layout and text coordinates (XML)")
     print()
     print("You can explore the package structure and study the METS XML format.")
     print("=" * 70)
