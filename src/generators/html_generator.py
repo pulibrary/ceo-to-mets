@@ -7,8 +7,10 @@ from jinja2 import Environment
 
 from clients import CeoItem
 
+from .generators.generator import Generator
 
-class HTMLGenerator:
+
+class HTMLGenerator(Generator):
     template_string = """
 <!DOCTYPE html>
 <html>
@@ -199,7 +201,7 @@ class HTMLGenerator:
         
         {% if item.abstract %}
         <div class="abstract">
-            {{ item.abstract|clean_html|safe }}
+            {{ item.abstract|clean_content|safe }}
         </div>
         {% endif %}
         
@@ -209,14 +211,14 @@ class HTMLGenerator:
                  alt="{{ item.dominantMedia.title }}">
             {% if item.dominantMedia.content %}
             <div class="image-caption">
-                {{ item.dominantMedia.content|clean_html|safe }}
+                {{ item.dominantMedia.content|clean_content|safe }}
             </div>
             {% endif %}
         </div>
         {% endif %}
         
         <div class="content">
-            {{ item.content|clean_html|safe }}
+            {{ item.content|clean_content|safe }}
         </div>
         
         {% if item.tags %}
@@ -319,52 +321,30 @@ class HTMLGenerator:
 
         {% if item.abstract %}
         <div class="abstract">
-          {{ item.abstract|clean_html|safe }}
+          {{ item.abstract|clean_content|safe }}
         </div>
         {% endif %}
 
         <div class="content">
-            {{ item.content|clean_html|safe }}
+            {{ item.content|clean_content|safe }}
         </div>
     </article>
 </body>
 </html>
 """
 
-    def __init__(self, items: Union[CeoItem, List[CeoItem]], include_images: bool = False) -> None:
-        """
-        Initialize HTML generator with article(s).
-
-        Args:
-            items: Single CeoItem or list of CeoItems
-            include_images: Whether to include featured images in HTML
-        """
-        self.items = items if isinstance(items, list) else [items]
-        self.include_images = include_images
-        self._html = None
+    def __init__(self) -> None:
+        self.items = list()
 
     def _format_date(self, date_str) -> str:
         try:
             dt = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
             return dt.strftime("%B %d, %Y at %I:%M %p")
-        except:
+        except ValueError:
             return date_str
 
-    def _clean_html_content(self, html_content):
-        """Clean up HTML content for better PDF rendering"""
-        if not html_content:
-            return ""
-
-        # The API returns HTML with escaped slashes in closing tags
-        html_content = html_content.replace("<\\/p>", "</p>")
-        html_content = html_content.replace("<\\/a>", "</a>")
-        html_content = html_content.replace("<\\/h5>", "</h5>")
-        html_content = html_content.replace("<\\/h6>", "</h6>")
-        html_content = html_content.replace("<\\/i>", "</i>")
-        html_content = html_content.replace("<\\/script>", "</script>")
-        html_content = html_content.replace("<\\/div>", "</div>")
-        html_content = html_content.replace("<\\/figure>", "</figure>")
-        html_content = html_content.replace("<\\/noscript>", "</noscript>")
+    def _clean_content(self, content):
+        content = super()._clean_html_content(content)
 
         # Extract Flourish chart thumbnails from embedded code
         # Flourish embeds look like: <div class="flourish-embed" data-src="visualisation/ID">
@@ -377,34 +357,30 @@ class HTMLGenerator:
             thumbnail_url = match.group(1)
             return f'<figure class="chart-image"><img src="{thumbnail_url}" alt="Chart" style="max-width: 100%; height: auto;"></figure>'
 
-        html_content = re.sub(
-            flourish_pattern, replace_flourish, html_content, flags=re.DOTALL
-        )
+        content = re.sub(flourish_pattern, replace_flourish, content, flags=re.DOTALL)
 
-        return html_content
+        return content
 
-    @property
-    def html(self) -> str:
-        """Generate HTML content from the article(s)."""
-        if self._html is None:
-            env = Environment()
-            env.filters["clean_html"] = self._clean_html_content
-            env.filters["format_date"] = self._format_date
+    def generate(self, include_images: bool = False) -> None:
+        env = Environment()
+        env.filters["clean_content"] = self._clean_content
+        env.filters["format_date"] = self._format_date
+        html = None
 
-            # Use single article template if only one article, otherwise use multi-article template
-            if len(self.items) == 1:
-                template = env.from_string(self.single_article_template_string)
-                self._html = template.render(item=self.items[0])
-            else:
-                template = env.from_string(self.template_string)
-                self._html = template.render(
-                    items=self.items,
-                    total=len(self.items),
-                    include_images=self.include_images
-                )
-        return self._html
+        # Use single article template if only one article, otherwise use multi-article template
+        if len(self.items) == 1:
+            template = env.from_string(self.single_article_template_string)
+            html = template.render(item=self.items[0])
+        else:
+            template = env.from_string(self.template_string)
+            html = template.render(
+                items=self.items,
+                total=len(self.items),
+                include_images=include_images,
+            )
+        self.html = html
 
-    def generate(self, output_path: Union[str, Path]) -> None:
+    def dump(self, output_path: Union[str, Path]) -> None:
         """
         Write HTML content to file.
 

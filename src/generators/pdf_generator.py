@@ -3,8 +3,10 @@ from typing import Union
 
 from weasyprint import HTML
 
+from generators.generator import Generator
 
-class PDFGenerator:
+
+class PDFGenerator(Generator):
     """Generate PDF documents from HTML content."""
 
     def __init__(self, html_string: str) -> None:
@@ -24,4 +26,3 @@ class PDFGenerator:
             output_path: Path where PDF file should be written
         """
         HTML(string=self.html).write_pdf(output_path)
-

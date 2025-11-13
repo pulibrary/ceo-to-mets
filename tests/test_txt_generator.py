@@ -1,7 +1,9 @@
 """Tests for TXTGenerator module."""
 
-import pytest
 from pathlib import Path
+
+import pytest
+
 from generators.txt_generator import TXTGenerator
 
 

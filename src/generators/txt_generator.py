@@ -6,9 +6,10 @@ from typing import Union
 import html2text
 
 from clients import CeoItem
+from generators import Generator
 
 
-class TXTGenerator:
+class TXTGenerator(Generator):
     """Generate plain text documents from article data."""
 
     def __init__(self, item: CeoItem) -> None:
@@ -21,23 +22,27 @@ class TXTGenerator:
         self.item = item
         self._text = None
 
-    def _clean_html_content(self, html_content: str) -> str:
+    def _clean_content(self, content: str) -> str:
         """Clean up HTML content for text extraction."""
-        if not html_content:
-            return ""
+        return super()._clean_html_content(content)
 
-        # The API returns HTML with escaped slashes in closing tags
-        html_content = html_content.replace("<\\/p>", "</p>")
-        html_content = html_content.replace("<\\/a>", "</a>")
-        html_content = html_content.replace("<\\/h5>", "</h5>")
-        html_content = html_content.replace("<\\/h6>", "</h6>")
-        html_content = html_content.replace("<\\/i>", "</i>")
-        html_content = html_content.replace("<\\/script>", "</script>")
-        html_content = html_content.replace("<\\/div>", "</div>")
-        html_content = html_content.replace("<\\/figure>", "</figure>")
-        html_content = html_content.replace("<\\/noscript>", "</noscript>")
+    # def _clean_html_content(self, html_content: str) -> str:
+    #     """Clean up HTML content for text extraction."""
+    #     if not html_content:
+    #         return ""
 
-        return html_content
+    #     # The API returns HTML with escaped slashes in closing tags
+    #     html_content = html_content.replace("<\\/p>", "</p>")
+    #     html_content = html_content.replace("<\\/a>", "</a>")
+    #     html_content = html_content.replace("<\\/h5>", "</h5>")
+    #     html_content = html_content.replace("<\\/h6>", "</h6>")
+    #     html_content = html_content.replace("<\\/i>", "</i>")
+    #     html_content = html_content.replace("<\\/script>", "</script>")
+    #     html_content = html_content.replace("<\\/div>", "</div>")
+    #     html_content = html_content.replace("<\\/figure>", "</figure>")
+    #     html_content = html_content.replace("<\\/noscript>", "</noscript>")
+
+    #     return html_content
 
     @property
     def text(self) -> str:
@@ -86,8 +91,7 @@ class TXTGenerator:
                         parts.append(f"By: {authors}")
                 else:
                     author_names = [
-                        a["name"] if isinstance(a, dict) else str(a)
-                        for a in authors
+                        a["name"] if isinstance(a, dict) else str(a) for a in authors
                     ]
                     parts.append(f"By: {', '.join(author_names)}")
 
@@ -100,13 +104,13 @@ class TXTGenerator:
 
             # Content
             if self.item.content:
-                parts.append(h.handle(self._clean_html_content(self.item.content)))
+                parts.append(h.handle(self._clean_content(self.item.content)))
 
             self._text = "\n".join(parts)
 
         return self._text
 
-    def generate(self, output_path: Union[str, Path]) -> None:
+    def dump(self, output_path: Union[str, Path]) -> None:
         """
         Write plain text content to file.
 
