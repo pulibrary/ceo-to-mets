@@ -1,7 +1,7 @@
 [project]
-name = "python-project-template"
+name = "ceo-to-mets"
 version = "0.1.0"
-description = "Python project template"
+description = "Convert Daily Princetonian CEO API articles to METS/MODS packages"
 authors = [
     {name = "Cliff Wulfman", email = "cwulfman@princeton.edu"},
 ]
@@ -17,6 +17,10 @@ requires-python = ">=3.12"
 readme = "README.md"
 license = {text = "MIT"}
 
+[project.scripts]
+dp-to-pdf = "cli.dp_to_pdf:main"
+demo-mets = "cli.demo_mets:main"
+
 [build-system]
 requires = ["pdm-backend"]
 build-backend = "pdm.backend"
@@ -28,13 +32,14 @@ package-dir = "src"
 
 
 [tool.pdm.scripts]
-start = "python -m my_python_project.main"
 test = "pytest"
 test_verbose = "pytest -v"
-cov = "pytest --cov=my_python_project --cov-report=html"
+cov = "pytest --cov=ceo_to_mets --cov-report=html"
 cov_report = {shell = "python -m http.server -d htmlcov"}
 lint = "ruff check"
 typecheck = "mypy src"
+dp-to-pdf = "python -m cli.dp_to_pdf"
+demo-mets = "python -m cli.demo_mets"
 
 
 [tool.pytest.ini_options]
@@ -42,7 +47,7 @@ pythonpath = ["src"]
 testpaths = ["tests"]
 python_files = "test_*.py"
 python_functions = "test_*"
-addopts = "--cov=my_python_project --cov-report=term-missing"
+addopts = "--cov=ceo_to_mets --cov-report=term-missing"
 
 [tool.coverage.run]
 source = ["src"]

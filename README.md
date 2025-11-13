@@ -33,24 +33,70 @@ Using pip:
 pip install -e .
 ```
 
-### Generate a Demo Package
+After installation, the `dp-to-pdf` and `demo-mets` commands will be available in your environment.
 
-Create a complete METS package with sample articles:
+### Generate Demo METS Package
+
+Create a demo METS package with sample articles (no API access required):
 
 ```bash
-python3 create_demo_mets.py
+# Create demo package in default location
+demo-mets
+
+# Specify custom output directory and date
+demo-mets --output my_demo --date 2024-12-01
+
+# Quiet mode (minimal output)
+demo-mets --quiet
+
+# Verbose mode (detailed progress)
+demo-mets --verbose
+
+# See all options
+demo-mets --help
 ```
 
-Or with PDM:
+**Demo METS Options:**
+- `--output` / `-o`: Output directory (default: demo_mets_output)
+- `--date`: Issue date in YYYY-MM-DD format (default: 2025-10-15)
+- `--verbose` / `-v`: Show detailed progress
+- `--quiet` / `-q`: Minimal output
+
+The demo package includes:
+- Complete METS XML file with full metadata
+- 3 sample articles (news, opinion, sports)
+- All derivative formats (JSON, HTML, TXT, PDF, ALTO)
+- Proper file structure for study and testing
+
+### Fetch Articles and Generate PDFs
+
+Fetch real articles from the Daily Princetonian API:
+
 ```bash
-pdm run python create_demo_mets.py
+# Basic usage - fetch articles and create PDF
+dp-to-pdf --start-date 2024-01-01 --end-date 2024-01-31
+
+# Specify output file and include images
+dp-to-pdf --start-date 2024-01-01 --end-date 2024-01-31 \
+  --output january_articles.pdf \
+  --include-images
+
+# Fetch opinion articles and save JSON
+dp-to-pdf --start-date 2024-01-01 --end-date 2024-01-31 \
+  --type opinion \
+  --save-json articles.json
+
+# See all options
+dp-to-pdf --help
 ```
 
-This creates a `demo_mets_output/` directory with:
-- Complete METS XML file
-- 3 sample articles in multiple formats
-- MODS descriptive metadata
-- ALTO XML with word-level text coordinates
+**Available Options:**
+- `--start-date` / `--end-date`: Date range for articles (YYYY-MM-DD)
+- `--output` / `-o`: Output PDF filename (default: articles.pdf)
+- `--type` / `-t`: Article type: article, opinion, or sports (default: article)
+- `--include-images` / `-i`: Include featured images in PDF
+- `--save-json`: Save raw article data as JSON
+- `--verbose` / `-v`: Show detailed progress
 
 ## Project Structure
 
@@ -58,18 +104,36 @@ This creates a `demo_mets_output/` directory with:
 .
 ├── src/
 │   ├── clients.py                    # API client and data models
-│   ├── dp_to_pdf.py                  # CLI tool: fetch article and generate PDF
-│   ├── generate_mets.py              # CLI tool: generate METS packages from API
+│   ├── cli/
+│   │   ├── dp_to_pdf.py              # CLI: fetch articles and generate PDF
+│   │   └── demo_mets.py              # CLI: generate demo METS package
+│   ├── generate_mets.py              # METS package generator (library)
 │   └── generators/
 │       ├── html_generator.py         # Generate formatted HTML
 │       ├── pdf_generator.py          # Generate PDF from HTML
 │       ├── txt_generator.py          # Extract plain text
 │       ├── alto_generator.py         # Generate ALTO XML with word segmentation
 │       └── mods_generator.py         # Generate MODS metadata
-├── tests/                            # Comprehensive test suite
-├── create_demo_mets.py               # Demo package generator
+├── tests/                            # Comprehensive test suite (79 tests)
+│   ├── conftest.py                   # Pytest fixtures
+│   ├── data/                         # Test data files
+│   └── test_*.py                     # Test modules
 └── README.md                         # This file
 ```
+
+## Command-Line Tools
+
+The package provides two main command-line tools:
+
+**1. `demo-mets`** - Generate demo METS packages without API access
+- Perfect for learning, testing, and demonstrating METS structure
+- Creates complete packages with sample articles
+- No external dependencies or API keys required
+
+**2. `dp-to-pdf`** - Fetch real articles and generate PDFs
+- Connects to Daily Princetonian CEO API
+- Downloads and formats articles by date range
+- Generates professional PDFs with optional images
 
 ## Generators
 

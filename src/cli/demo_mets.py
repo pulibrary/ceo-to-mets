@@ -2,39 +2,19 @@
 """
 Create a demo METS package for study and testing.
 
-DEPRECATED: This script is maintained for backwards compatibility.
-Please use the 'demo-mets' command instead:
-
-    demo-mets --help
-
-After installing the package with 'pdm install' or 'pip install -e .',
-the demo-mets command will be available in your environment.
+This script generates a complete METS package with sample articles
+without needing to call the actual API. Useful for testing, learning,
+and demonstrating the METS package structure.
 """
 
-import sys
-from datetime import datetime
-from pathlib import Path
-
-print("=" * 70)
-print("NOTICE: This script is deprecated")
-print("=" * 70)
-print()
-print("Please use the 'demo-mets' command instead:")
-print("  demo-mets --help")
-print()
-print("After installing with 'pdm install' or 'pip install -e .', ")
-print("the demo-mets command will be available.")
-print()
-print("Continuing with legacy script...")
-print("=" * 70)
-print()
-
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent / "src"))
-
+import argparse
+import dataclasses
 import hashlib
 import json
 import os
+import sys
+from datetime import datetime
+from pathlib import Path
 
 from lxml import etree
 
@@ -233,28 +213,32 @@ def create_sample_articles():
     return articles
 
 
-def generate_derivatives(article, article_dir):
+def generate_derivatives(article, article_dir, verbose=False):
     """Generate JSON, HTML, TXT, PDF, and ALTO derivatives for an article."""
     files = {}
     article_id = article.id
 
+    if verbose:
+        print(f"  Generating derivatives for article {article_id}...")
+
     # 1. JSON - raw article data
     json_path = article_dir / f"article-{article_id}.json"
     with open(json_path, "w", encoding="utf-8") as f:
-        import dataclasses
-
         item_dict = dataclasses.asdict(article)
         json.dump(item_dict, f, ensure_ascii=False, indent=2)
     files["json"] = get_file_info(json_path, "application/json")
 
     # 2. HTML - formatted article content
-    html_generator = HTMLGenerator(article)
+    html_generator = HTMLGenerator()
+    html_generator.items = [article]
+    html_generator.generate()
     html_path = article_dir / f"article-{article_id}.html"
-    html_generator.generate(html_path)
+    html_generator.dump(html_path)
     files["html"] = get_file_info(html_path, "text/html")
 
     # 3. TXT - plain text extraction
-    txt_generator = TXTGenerator(article)
+    txt_generator = TXTGenerator()
+    txt_generator.item = article
     txt_path = article_dir / f"article-{article_id}.txt"
     txt_generator.dump(txt_path)
     files["txt"] = get_file_info(txt_path, "text/plain")
@@ -266,7 +250,8 @@ def generate_derivatives(article, article_dir):
     files["pdf"] = get_file_info(pdf_path, "application/pdf")
 
     # 5. ALTO - layout and text coordinates
-    alto_generator = ALTOGenerator(pdf_path, article)
+    alto_generator = ALTOGenerator()
+    alto_generator.pdf_path = pdf_path
     alto_path = article_dir / f"article-{article_id}.alto.xml"
     alto_generator.dump(alto_path)
     files["alto"] = get_file_info(alto_path, "application/xml+alto")
@@ -417,49 +402,95 @@ def add_dmd_sec(root, item, dmd_id, nsmap):
 
 def main():
     """Create the demo METS package."""
-    print("=" * 70)
-    print("Daily Princetonian Demo METS Package Generator")
-    print("=" * 70)
-    print()
+    parser = argparse.ArgumentParser(
+        prog='demo-mets',
+        description='Generate a demo METS package with sample Daily Princetonian articles',
+        epilog='This tool creates a complete METS package without needing API access'
+    )
+    parser.add_argument(
+        '--output', '-o',
+        default='demo_mets_output',
+        metavar='DIR',
+        help='Output directory (default: demo_mets_output)'
+    )
+    parser.add_argument(
+        '--date',
+        default='2025-10-15',
+        metavar='YYYY-MM-DD',
+        help='Issue date for the demo package (default: 2025-10-15)'
+    )
+    parser.add_argument(
+        '--verbose', '-v',
+        action='store_true',
+        help='Show detailed progress information'
+    )
+    parser.add_argument(
+        '--quiet', '-q',
+        action='store_true',
+        help='Minimal output (only errors and final summary)'
+    )
+
+    args = parser.parse_args()
+
+    # Setup verbosity
+    quiet = args.quiet
+    verbose = args.verbose and not quiet
+
+    if not quiet:
+        print("=" * 70)
+        print("Daily Princetonian Demo METS Package Generator")
+        print("=" * 70)
+        print()
 
     # Setup output directory
-    output_dir = Path("demo_mets_output")
-    date_str = "2025-10-15"
+    output_dir = Path(args.output)
+    date_str = args.date
     issue_dir = output_dir / date_str
     articles_dir = issue_dir / "articles"
     articles_dir.mkdir(parents=True, exist_ok=True)
 
-    print(f"Output directory: {issue_dir}")
-    print()
+    if verbose:
+        print(f"Output directory: {issue_dir}")
+        print()
 
     # Create sample articles
-    print("Creating sample articles...")
+    if not quiet:
+        print("Creating sample articles...")
     articles = create_sample_articles()
-    print(f"✓ Created {len(articles)} sample articles")
-    print()
+    if not quiet:
+        print(f"✓ Created {len(articles)} sample articles")
+        print()
 
     # Generate derivatives for each article
     article_data = []
     for article in articles:
-        print(f"Processing: {article.headline[:60]}...")
+        if not quiet:
+            headline = article.headline[:60] + "..." if len(article.headline) > 60 else article.headline
+            print(f"Processing: {headline}")
+
         article_dir = articles_dir / f"article-{article.id}"
         article_dir.mkdir(exist_ok=True)
 
-        files = generate_derivatives(article, article_dir)
+        files = generate_derivatives(article, article_dir, verbose=verbose)
 
         article_data.append(
             {"item": article, "files": files, "article_dir": article_dir}
         )
-        print(f"  ✓ Generated JSON, HTML, TXT, PDF, ALTO")
 
-    print()
+        if not quiet:
+            print(f"  ✓ Generated JSON, HTML, TXT, PDF, ALTO")
+
+    if not quiet:
+        print()
 
     # Generate METS XML
-    print("Generating METS XML...")
+    if not quiet:
+        print("Generating METS XML...")
     mets_path = issue_dir / "mets.xml"
     generate_mets(date_str, article_data, mets_path)
-    print(f"✓ Generated METS XML with {len(article_data)} articles")
-    print()
+    if not quiet:
+        print(f"✓ Generated METS XML with {len(article_data)} articles")
+        print()
 
     print("=" * 70)
     print("Demo METS package created successfully!")
@@ -481,6 +512,8 @@ def main():
     print("You can explore the package structure and study the METS XML format.")
     print("=" * 70)
 
+    return 0
+
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
