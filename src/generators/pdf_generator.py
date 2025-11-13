@@ -3,7 +3,7 @@ from typing import Union
 
 from weasyprint import HTML
 
-from generators.generator import Generator
+from .generator import Generator
 
 
 class PDFGenerator(Generator):
@@ -18,7 +18,14 @@ class PDFGenerator(Generator):
         """
         self.html = html_string
 
-    def generate(self, output_path: Union[str, Path]) -> None:
+    def generate(self) -> None:
+        """
+        Generate PDF from HTML content.
+        This is a no-op as PDF generation happens on demand during dump().
+        """
+        pass
+
+    def dump(self, output_path: Union[str, Path]) -> None:
         """
         Write PDF to file.
 

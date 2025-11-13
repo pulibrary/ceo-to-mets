@@ -121,13 +121,13 @@ class MESTGenerator:
         # 3. TXT - plain text extraction using TXTGenerator
         txt_generator = TXTGenerator(item)
         txt_path = article_dir / f"article-{article_id}.txt"
-        txt_generator.generate(txt_path)
+        txt_generator.dump(txt_path)
         files["txt"] = self._get_file_info(txt_path, "text/plain")
 
         # 4. PDF - single article PDF using PDFGenerator
         pdf_generator = PDFGenerator(html_generator.html)
         pdf_path = article_dir / f"article-{article_id}.pdf"
-        pdf_generator.generate(pdf_path)
+        pdf_generator.dump(pdf_path)
         files["pdf"] = self._get_file_info(pdf_path, "application/pdf")
 
         return files

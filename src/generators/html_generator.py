@@ -7,7 +7,7 @@ from jinja2 import Environment
 
 from clients import CeoItem
 
-from .generators.generator import Generator
+from .generator import Generator
 
 
 class HTMLGenerator(Generator):
@@ -334,7 +334,7 @@ class HTMLGenerator(Generator):
 """
 
     def __init__(self) -> None:
-        self.items = list()
+        self.items: List[CeoItem] = list()
 
     def _format_date(self, date_str) -> str:
         try:

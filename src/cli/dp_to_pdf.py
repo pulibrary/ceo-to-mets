@@ -28,7 +28,7 @@ def generate_pdf(items, output_file='articles.pdf', include_images=False):
 
     # Generate PDF using PDFGenerator
     pdf_generator = PDFGenerator(html_generator.html)
-    pdf_generator.generate(output_file)
+    pdf_generator.dump(output_file)
 
     print(f"✓ PDF created successfully!")
 

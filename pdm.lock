@@ -5,7 +5,7 @@
 groups = ["default", "dev"]
 strategy = []
 lock_version = "4.5.0"
-content_hash = "sha256:16b99443629a9e9bf78b41ed7b795a397c94b6c9a0d82cfc3c7e02df31cf6317"
+content_hash = "sha256:bdd7325cd54e64376bffa1319aba2b2489ae252406200dcfc7a4e421233012c8"
 
 [[metadata.targets]]
 requires_python = ">=3.12"
@@ -709,6 +709,18 @@ dependencies = [
 files = [
     {file = "pytest_cov-6.1.0-py3-none-any.whl", hash = "sha256:cd7e1d54981d5185ef2b8d64b50172ce97e6f357e6df5cb103e828c7f993e201"},
     {file = "pytest_cov-6.1.0.tar.gz", hash = "sha256:ec55e828c66755e5b74a21bd7cc03c303a9f928389c0563e50ba454a6dbe71db"},
+]
+
+[[package]]
+name = "pytest-datadir"
+version = "1.8.0"
+summary = ""
+dependencies = [
+    "pytest",
+]
+files = [
+    {file = "pytest_datadir-1.8.0-py3-none-any.whl", hash = "sha256:5c677bc097d907ac71ca418109adc3abe34cf0bddfe6cf78aecfbabd96a15cf0"},
+    {file = "pytest_datadir-1.8.0.tar.gz", hash = "sha256:7a15faed76cebe87cc91941dd1920a9a38eba56a09c11e9ddf1434d28a0f78eb"},
 ]
 
 [[package]]

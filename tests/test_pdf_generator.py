@@ -21,7 +21,7 @@ def test_pdf_generator_creates_pdf(tmp_path):
     generator = PDFGenerator(html_content)
     output_path = tmp_path / "test_output.pdf"
 
-    generator.generate(output_path)
+    generator.dump(output_path)
 
     # Check that PDF file was created
     assert output_path.exists()
@@ -46,7 +46,7 @@ def test_pdf_generator_with_string_path(tmp_path):
     generator = PDFGenerator(html_content)
     output_path = str(tmp_path / "test_string_path.pdf")
 
-    generator.generate(output_path)
+    generator.dump(output_path)
 
     assert Path(output_path).exists()
 
@@ -64,7 +64,7 @@ def test_pdf_generator_with_pathlib_path(tmp_path):
     generator = PDFGenerator(html_content)
     output_path = tmp_path / "test_pathlib.pdf"
 
-    generator.generate(output_path)
+    generator.dump(output_path)
 
     assert output_path.exists()
 
@@ -104,7 +104,7 @@ def test_pdf_generator_with_complex_html(tmp_path):
     generator = PDFGenerator(html_content)
     output_path = tmp_path / "test_complex.pdf"
 
-    generator.generate(output_path)
+    generator.dump(output_path)
 
     assert output_path.exists()
     # Complex HTML should still produce a valid PDF
@@ -127,6 +127,6 @@ def test_pdf_generator_minimal_html(tmp_path):
     generator = PDFGenerator(html_content)
     output_path = tmp_path / "minimal.pdf"
 
-    generator.generate(output_path)
+    generator.dump(output_path)
 
     assert output_path.exists()

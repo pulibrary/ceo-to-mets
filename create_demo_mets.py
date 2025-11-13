@@ -236,19 +236,19 @@ def generate_derivatives(article, article_dir):
     # 3. TXT - plain text extraction
     txt_generator = TXTGenerator(article)
     txt_path = article_dir / f"article-{article_id}.txt"
-    txt_generator.generate(txt_path)
+    txt_generator.dump(txt_path)
     files["txt"] = get_file_info(txt_path, "text/plain")
 
     # 4. PDF - single article PDF
     pdf_generator = PDFGenerator(html_generator.html)
     pdf_path = article_dir / f"article-{article_id}.pdf"
-    pdf_generator.generate(pdf_path)
+    pdf_generator.dump(pdf_path)
     files["pdf"] = get_file_info(pdf_path, "application/pdf")
 
     # 5. ALTO - layout and text coordinates
     alto_generator = ALTOGenerator(pdf_path, article)
     alto_path = article_dir / f"article-{article_id}.alto.xml"
-    alto_generator.generate(alto_path)
+    alto_generator.dump(alto_path)
     files["alto"] = get_file_info(alto_path, "application/xml+alto")
 
     return files
