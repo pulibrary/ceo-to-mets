@@ -6,23 +6,24 @@ without needing to call the actual API.
 """
 
 import sys
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
+import hashlib
+import json
+import os
+
+from lxml import etree
+
 from clients import CeoItem
+from generators.alto_generator import ALTOGenerator
 from generators.html_generator import HTMLGenerator
+from generators.mods_generator import MODSGenerator
 from generators.pdf_generator import PDFGenerator
 from generators.txt_generator import TXTGenerator
-from generators.mods_generator import MODSGenerator
-from generators.alto_generator import ALTOGenerator
-
-import os
-import json
-import hashlib
-from lxml import etree
 
 
 def create_sample_articles():
@@ -30,17 +31,18 @@ def create_sample_articles():
     articles = []
 
     # Article 1: News story
-    articles.append(CeoItem(
-        id="10001",
-        uuid="abc-news-001",
-        slug="campus-announces-new-sustainability-initiative",
-        seo_title="Campus Announces New Sustainability Initiative",
-        seo_description="University launches comprehensive plan to achieve carbon neutrality by 2030",
-        seo_image="",
-        headline="Campus Announces Ambitious Sustainability Initiative",
-        subhead="University commits to carbon neutrality by 2030 with new green energy plan",
-        abstract="<p>The university announced today a comprehensive sustainability initiative aimed at achieving carbon neutrality by 2030, marking one of the most ambitious environmental commitments among peer institutions.</p>",
-        content="""
+    articles.append(
+        CeoItem(
+            id="10001",
+            uuid="abc-news-001",
+            slug="campus-announces-new-sustainability-initiative",
+            seo_title="Campus Announces New Sustainability Initiative",
+            seo_description="University launches comprehensive plan to achieve carbon neutrality by 2030",
+            seo_image="",
+            headline="Campus Announces Ambitious Sustainability Initiative",
+            subhead="University commits to carbon neutrality by 2030 with new green energy plan",
+            abstract="<p>The university announced today a comprehensive sustainability initiative aimed at achieving carbon neutrality by 2030, marking one of the most ambitious environmental commitments among peer institutions.</p>",
+            content="""
         <p>In a major announcement this morning, university administrators unveiled a sweeping sustainability
         initiative that will transform campus operations over the next decade. The plan includes significant
         investments in renewable energy, building retrofits, and sustainable transportation.</p>
@@ -65,38 +67,40 @@ def create_sample_articles():
         <p>The university estimates the initiative will require an investment of $50 million over the next
         decade, with much of that cost offset by energy savings and external grant funding.</p>
         """,
-        infobox="",
-        template="article",
-        short_token="sus001",
-        status="published",
-        weight="1",
-        media_id="",
-        created_at="2025-10-15 08:00:00",
-        modified_at="2025-10-15 09:00:00",
-        published_at="2025-10-15 10:00:00",
-        metadata="{}",
-        hits="2500",
-        normalized_tags="news,campus,sustainability,environment",
-        ceo_id="10001",
-        ssts_id="",
-        ssts_path="",
-        tags='[{"name": "News"}, {"name": "Campus"}, {"name": "Environment"}, {"name": "Sustainability"}]',
-        authors='[{"name": "Sarah Chen"}, {"name": "Michael Rodriguez"}]',
-        dominantMedia="",
-    ))
+            infobox="",
+            template="article",
+            short_token="sus001",
+            status="published",
+            weight="1",
+            media_id="",
+            created_at="2025-10-15 08:00:00",
+            modified_at="2025-10-15 09:00:00",
+            published_at="2025-10-15 10:00:00",
+            metadata="{}",
+            hits="2500",
+            normalized_tags="news,campus,sustainability,environment",
+            ceo_id="10001",
+            ssts_id="",
+            ssts_path="",
+            tags='[{"name": "News"}, {"name": "Campus"}, {"name": "Environment"}, {"name": "Sustainability"}]',
+            authors='[{"name": "Sarah Chen"}, {"name": "Michael Rodriguez"}]',
+            dominantMedia="",
+        )
+    )
 
     # Article 2: Opinion piece
-    articles.append(CeoItem(
-        id="10002",
-        uuid="abc-opinion-001",
-        slug="we-need-more-mental-health-resources",
-        seo_title="Opinion: We Need More Mental Health Resources on Campus",
-        seo_description="Student argues for expanded mental health services and reduced stigma",
-        seo_image="",
-        headline="We Need to Talk About Mental Health on Campus",
-        subhead="It's time to invest in comprehensive support services for student wellbeing",
-        abstract="<p>As students face mounting pressures, our current mental health resources are insufficient. We need immediate action to expand services and reduce stigma.</p>",
-        content="""
+    articles.append(
+        CeoItem(
+            id="10002",
+            uuid="abc-opinion-001",
+            slug="we-need-more-mental-health-resources",
+            seo_title="Opinion: We Need More Mental Health Resources on Campus",
+            seo_description="Student argues for expanded mental health services and reduced stigma",
+            seo_image="",
+            headline="We Need to Talk About Mental Health on Campus",
+            subhead="It's time to invest in comprehensive support services for student wellbeing",
+            abstract="<p>As students face mounting pressures, our current mental health resources are insufficient. We need immediate action to expand services and reduce stigma.</p>",
+            content="""
         <p>Last week, I watched a close friend struggle to get a counseling appointment, only to be told
         the earliest available slot was three weeks away. This is unacceptable. When students are in crisis,
         three weeks might as well be three years.</p>
@@ -126,38 +130,40 @@ def create_sample_articles():
         <p>Our peer institutions are investing heavily in mental health services. It's time we do the same.
         Student wellbeing should be our top priority—not an afterthought in the budget process.</p>
         """,
-        infobox="",
-        template="article",
-        short_token="op001",
-        status="published",
-        weight="0",
-        media_id="",
-        created_at="2025-10-15 12:00:00",
-        modified_at="2025-10-15 13:00:00",
-        published_at="2025-10-15 14:00:00",
-        metadata="{}",
-        hits="1800",
-        normalized_tags="opinion,mental-health,student-life",
-        ceo_id="10002",
-        ssts_id="",
-        ssts_path="",
-        tags='[{"name": "Opinion"}, {"name": "Mental Health"}, {"name": "Student Life"}]',
-        authors='[{"name": "Emma Thompson"}]',
-        dominantMedia="",
-    ))
+            infobox="",
+            template="article",
+            short_token="op001",
+            status="published",
+            weight="0",
+            media_id="",
+            created_at="2025-10-15 12:00:00",
+            modified_at="2025-10-15 13:00:00",
+            published_at="2025-10-15 14:00:00",
+            metadata="{}",
+            hits="1800",
+            normalized_tags="opinion,mental-health,student-life",
+            ceo_id="10002",
+            ssts_id="",
+            ssts_path="",
+            tags='[{"name": "Opinion"}, {"name": "Mental Health"}, {"name": "Student Life"}]',
+            authors='[{"name": "Emma Thompson"}]',
+            dominantMedia="",
+        )
+    )
 
     # Article 3: Sports story
-    articles.append(CeoItem(
-        id="10003",
-        uuid="abc-sports-001",
-        slug="womens-soccer-advances-to-finals",
-        seo_title="Women's Soccer Team Advances to Championship Finals",
-        seo_description="Tigers defeat rivals in overtime thriller to secure spot in finals",
-        seo_image="",
-        headline="Women's Soccer Advances to Finals in Overtime Thriller",
-        subhead="Last-minute goal sends Tigers to championship game for first time in five years",
-        abstract="<p>The women's soccer team secured a dramatic 2-1 overtime victory against conference rivals, earning their first trip to the championship finals since 2020.</p>",
-        content="""
+    articles.append(
+        CeoItem(
+            id="10003",
+            uuid="abc-sports-001",
+            slug="womens-soccer-advances-to-finals",
+            seo_title="Women's Soccer Team Advances to Championship Finals",
+            seo_description="Tigers defeat rivals in overtime thriller to secure spot in finals",
+            seo_image="",
+            headline="Women's Soccer Advances to Finals in Overtime Thriller",
+            subhead="Last-minute goal sends Tigers to championship game for first time in five years",
+            abstract="<p>The women's soccer team secured a dramatic 2-1 overtime victory against conference rivals, earning their first trip to the championship finals since 2020.</p>",
+            content="""
         <p>In a match that will be remembered for years to come, the women's soccer team defeated their
         longtime rivals 2-1 in overtime Saturday afternoon, punching their ticket to the conference
         championship finals for the first time since 2020.</p>
@@ -183,25 +189,26 @@ def create_sample_articles():
 
         <p>"We know what we're up against," Santos said. "But we're a different team now. We're ready."</p>
         """,
-        infobox="",
-        template="article",
-        short_token="sp001",
-        status="published",
-        weight="0",
-        media_id="",
-        created_at="2025-10-15 18:00:00",
-        modified_at="2025-10-15 19:00:00",
-        published_at="2025-10-15 20:00:00",
-        metadata="{}",
-        hits="3200",
-        normalized_tags="sports,soccer,womens-sports",
-        ceo_id="10003",
-        ssts_id="",
-        ssts_path="",
-        tags='[{"name": "Sports"}, {"name": "Soccer"}, {"name": "Women\'s Athletics"}]',
-        authors='[{"name": "James Park"}]',
-        dominantMedia="",
-    ))
+            infobox="",
+            template="article",
+            short_token="sp001",
+            status="published",
+            weight="0",
+            media_id="",
+            created_at="2025-10-15 18:00:00",
+            modified_at="2025-10-15 19:00:00",
+            published_at="2025-10-15 20:00:00",
+            metadata="{}",
+            hits="3200",
+            normalized_tags="sports,soccer,womens-sports",
+            ceo_id="10003",
+            ssts_id="",
+            ssts_path="",
+            tags='[{"name": "Sports"}, {"name": "Soccer"}, {"name": "Women\'s Athletics"}]',
+            authors='[{"name": "James Park"}]',
+            dominantMedia="",
+        )
+    )
 
     return articles
 
@@ -213,35 +220,36 @@ def generate_derivatives(article, article_dir):
 
     # 1. JSON - raw article data
     json_path = article_dir / f"article-{article_id}.json"
-    with open(json_path, 'w', encoding='utf-8') as f:
+    with open(json_path, "w", encoding="utf-8") as f:
         import dataclasses
+
         item_dict = dataclasses.asdict(article)
         json.dump(item_dict, f, ensure_ascii=False, indent=2)
-    files['json'] = get_file_info(json_path, 'application/json')
+    files["json"] = get_file_info(json_path, "application/json")
 
     # 2. HTML - formatted article content
     html_generator = HTMLGenerator(article)
     html_path = article_dir / f"article-{article_id}.html"
     html_generator.generate(html_path)
-    files['html'] = get_file_info(html_path, 'text/html')
+    files["html"] = get_file_info(html_path, "text/html")
 
     # 3. TXT - plain text extraction
     txt_generator = TXTGenerator(article)
     txt_path = article_dir / f"article-{article_id}.txt"
     txt_generator.generate(txt_path)
-    files['txt'] = get_file_info(txt_path, 'text/plain')
+    files["txt"] = get_file_info(txt_path, "text/plain")
 
     # 4. PDF - single article PDF
     pdf_generator = PDFGenerator(html_generator.html)
     pdf_path = article_dir / f"article-{article_id}.pdf"
     pdf_generator.generate(pdf_path)
-    files['pdf'] = get_file_info(pdf_path, 'application/pdf')
+    files["pdf"] = get_file_info(pdf_path, "application/pdf")
 
     # 5. ALTO - layout and text coordinates
     alto_generator = ALTOGenerator(pdf_path, article)
     alto_path = article_dir / f"article-{article_id}.alto.xml"
     alto_generator.generate(alto_path)
-    files['alto'] = get_file_info(alto_path, 'application/xml+alto')
+    files["alto"] = get_file_info(alto_path, "application/xml+alto")
 
     return files
 
@@ -252,120 +260,132 @@ def get_file_info(file_path, mimetype):
 
     # Calculate MD5 checksum
     md5_hash = hashlib.md5()
-    with open(file_path, 'rb') as f:
+    with open(file_path, "rb") as f:
         for chunk in iter(lambda: f.read(4096), b""):
             md5_hash.update(chunk)
 
     return {
-        'path': file_path,
-        'size': file_size,
-        'checksum': md5_hash.hexdigest(),
-        'mimetype': mimetype
+        "path": file_path,
+        "size": file_size,
+        "checksum": md5_hash.hexdigest(),
+        "mimetype": mimetype,
     }
 
 
 def generate_mets(date_str, article_data, mets_path):
     """Generate METS XML file."""
     nsmap = {
-        'mets': 'http://www.loc.gov/METS/',
-        'mods': 'http://www.loc.gov/mods/v3',
-        'xlink': 'http://www.w3.org/1999/xlink',
-        'xsi': 'http://www.w3.org/2001/XMLSchema-instance'
+        "mets": "http://www.loc.gov/METS/",
+        "mods": "http://www.loc.gov/mods/v3",
+        "xlink": "http://www.w3.org/1999/xlink",
+        "xsi": "http://www.w3.org/2001/XMLSchema-instance",
     }
 
-    METS = '{%s}' % nsmap['mets']
-    XLINK = '{%s}' % nsmap['xlink']
+    METS = "{%s}" % nsmap["mets"]
+    XLINK = "{%s}" % nsmap["xlink"]
 
     root = etree.Element(
-        METS + 'mets',
+        METS + "mets",
         nsmap=nsmap,
         attrib={
-            '{%s}schemaLocation' % nsmap['xsi']:
-                'http://www.loc.gov/METS/ http://www.loc.gov/standards/mets/mets.xsd '
-                'http://www.loc.gov/mods/v3 http://www.loc.gov/standards/mods/v3/mods-3-7.xsd'
-        }
+            "{%s}schemaLocation"
+            % nsmap[
+                "xsi"
+            ]: "http://www.loc.gov/METS/ http://www.loc.gov/standards/mets/mets.xsd "
+            "http://www.loc.gov/mods/v3 http://www.loc.gov/standards/mods/v3/mods-3-7.xsd"
+        },
     )
+    # Veridian requires TYPE="Newspaper" attribute on the root element
+    root.attrib["TYPE"] = "Newspaper"
 
     # METS Header
-    mets_hdr = etree.SubElement(root, METS + 'metsHdr',
-        CREATEDATE=datetime.now().isoformat())
+    mets_hdr = etree.SubElement(
+        root, METS + "metsHdr", CREATEDATE=datetime.now().isoformat()
+    )
 
-    agent = etree.SubElement(mets_hdr, METS + 'agent',
-        ROLE='CREATOR', TYPE='ORGANIZATION')
-    name = etree.SubElement(agent, METS + 'name')
-    name.text = 'Princeton University Library'
+    agent = etree.SubElement(
+        mets_hdr, METS + "agent", ROLE="CREATOR", TYPE="ORGANIZATION"
+    )
+    name = etree.SubElement(agent, METS + "name")
+    name.text = "Princeton University Library"
 
     # Generate dmdSec for each article
     for idx, article in enumerate(article_data, 1):
         dmd_id = f"DMD{idx}"
-        add_dmd_sec(root, article['item'], dmd_id, nsmap)
+        add_dmd_sec(root, article["item"], dmd_id, nsmap)
 
     # Generate fileSec
-    file_sec = etree.SubElement(root, METS + 'fileSec')
+    file_sec = etree.SubElement(root, METS + "fileSec")
 
     for idx, article in enumerate(article_data, 1):
-        file_grp = etree.SubElement(file_sec, METS + 'fileGrp',
-            USE=f"Article {article['item'].id}")
+        file_grp = etree.SubElement(
+            file_sec, METS + "fileGrp", USE=f"Article {article['item'].id}"
+        )
 
-        for format_type, file_info in article['files'].items():
+        for format_type, file_info in article["files"].items():
             file_id = f"FILE{idx}_{format_type.upper()}"
 
-            file_elem = etree.SubElement(file_grp, METS + 'file',
+            file_elem = etree.SubElement(
+                file_grp,
+                METS + "file",
                 ID=file_id,
-                MIMETYPE=file_info['mimetype'],
-                SIZE=str(file_info['size']),
-                CHECKSUM=file_info['checksum'],
-                CHECKSUMTYPE='MD5'
+                MIMETYPE=file_info["mimetype"],
+                SIZE=str(file_info["size"]),
+                CHECKSUM=file_info["checksum"],
+                CHECKSUMTYPE="MD5",
             )
 
             # Relative path from METS file location
-            rel_path = os.path.relpath(file_info['path'], mets_path.parent)
+            rel_path = os.path.relpath(file_info["path"], mets_path.parent)
 
-            flocat = etree.SubElement(file_elem, METS + 'FLocat',
-                LOCTYPE='URL',
-                attrib={XLINK + 'href': f"file://{rel_path}"}
+            flocat = etree.SubElement(
+                file_elem,
+                METS + "FLocat",
+                LOCTYPE="URL",
+                attrib={XLINK + "href": f"file://{rel_path}"},
             )
 
     # Generate structMap
-    struct_map = etree.SubElement(root, METS + 'structMap',
-        TYPE='logical', LABEL='Daily Princetonian Demo Issue')
+    struct_map = etree.SubElement(
+        root, METS + "structMap", TYPE="logical", LABEL="Daily Princetonian Demo Issue"
+    )
 
-    issue_div = etree.SubElement(struct_map, METS + 'div',
-        TYPE='Issue', LABEL=f'Demo Issue - {date_str}')
+    issue_div = etree.SubElement(
+        struct_map, METS + "div", TYPE="Issue", LABEL=f"Demo Issue - {date_str}"
+    )
 
     for idx, article in enumerate(article_data, 1):
-        item = article['item']
+        item = article["item"]
 
-        article_div = etree.SubElement(issue_div, METS + 'div',
-            TYPE='Article',
+        article_div = etree.SubElement(
+            issue_div,
+            METS + "div",
+            TYPE="Article",
             LABEL=item.headline,
-            DMDID=f"DMD{idx}"
+            DMDID=f"DMD{idx}",
         )
 
-        content_div = etree.SubElement(article_div, METS + 'div',
-            TYPE='Content')
+        content_div = etree.SubElement(article_div, METS + "div", TYPE="Content")
 
         # Add fptr for each format
-        for format_type in ['json', 'html', 'txt', 'pdf', 'alto']:
+        for format_type in ["json", "html", "txt", "pdf", "alto"]:
             file_id = f"FILE{idx}_{format_type.upper()}"
-            fptr = etree.SubElement(content_div, METS + 'fptr',
-                FILEID=file_id)
+            fptr = etree.SubElement(content_div, METS + "fptr", FILEID=file_id)
 
     # Write METS XML to file
     tree = etree.ElementTree(root)
-    tree.write(str(mets_path),
-               pretty_print=True,
-               xml_declaration=True,
-               encoding='UTF-8')
+    tree.write(
+        str(mets_path), pretty_print=True, xml_declaration=True, encoding="UTF-8"
+    )
 
 
 def add_dmd_sec(root, item, dmd_id, nsmap):
     """Add descriptive metadata section for an article using MODSGenerator."""
-    METS = '{%s}' % nsmap['mets']
+    METS = "{%s}" % nsmap["mets"]
 
-    dmd_sec = etree.SubElement(root, METS + 'dmdSec', ID=dmd_id)
-    md_wrap = etree.SubElement(dmd_sec, METS + 'mdWrap', MDTYPE='MODS')
-    xml_data = etree.SubElement(md_wrap, METS + 'xmlData')
+    dmd_sec = etree.SubElement(root, METS + "dmdSec", ID=dmd_id)
+    md_wrap = etree.SubElement(dmd_sec, METS + "mdWrap", MDTYPE="MODS")
+    xml_data = etree.SubElement(md_wrap, METS + "xmlData")
 
     # Generate MODS record using MODSGenerator
     mods_generator = MODSGenerator(item)
@@ -407,18 +427,16 @@ def main():
 
         files = generate_derivatives(article, article_dir)
 
-        article_data.append({
-            'item': article,
-            'files': files,
-            'article_dir': article_dir
-        })
+        article_data.append(
+            {"item": article, "files": files, "article_dir": article_dir}
+        )
         print(f"  ✓ Generated JSON, HTML, TXT, PDF, ALTO")
 
     print()
 
     # Generate METS XML
     print("Generating METS XML...")
-    mets_path = issue_dir / 'mets.xml'
+    mets_path = issue_dir / "mets.xml"
     generate_mets(date_str, article_data, mets_path)
     print(f"✓ Generated METS XML with {len(article_data)} articles")
     print()
@@ -444,5 +462,5 @@ def main():
     print("=" * 70)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
