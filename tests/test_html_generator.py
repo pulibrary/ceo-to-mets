@@ -1,6 +1,7 @@
 """Tests for HTMLGenerator module."""
 
-from src.generators import HTMLGenerator
+import pytest
+from generators.html_generator import HTMLGenerator
 
 
 def test_html_generator_single_article(sample_ceo_item, tmp_path):

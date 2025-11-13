@@ -16,6 +16,20 @@ print(f"Python path: {sys.path}")
 
 
 @pytest.fixture
+def test_data_dir():
+    """Return the path to the test data directory."""
+    return Path(__file__).parent / "data"
+
+
+@pytest.fixture
+def test_pdf_path(test_data_dir):
+    """Return the path to the test PDF file."""
+    pdf_path = test_data_dir / "test_pdf_1.pdf"
+    assert pdf_path.exists(), f"Test PDF not found at {pdf_path}"
+    return pdf_path
+
+
+@pytest.fixture
 def sample_ceo_item():
     """Create a sample CeoItem for testing."""
     from clients import CeoItem

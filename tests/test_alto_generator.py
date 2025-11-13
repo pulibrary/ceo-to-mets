@@ -64,20 +64,37 @@ class TestALTOGenerator:
 
     def test_alto_generator_file_not_found(self):
         """Test ALTOGenerator raises error for missing PDF."""
+        generator = ALTOGenerator()
         with pytest.raises(FileNotFoundError):
-            ALTOGenerator("/nonexistent/file.pdf")
+            generator.pdf_path = Path("/nonexistent/file.pdf")
+
+    def test_alto_generator_with_test_pdf(self, test_pdf_path):
+        """Test ALTOGenerator with existing test PDF."""
+        generator = ALTOGenerator()
+        generator.pdf_path = test_pdf_path
+
+        pages = generator.extract_layout_from_pdf()
+
+        assert len(pages) > 0
+        assert isinstance(pages[0], ALTOPage)
+        assert pages[0].page_number == 1
+        assert pages[0].width > 0
+        assert pages[0].height > 0
 
     def test_extract_layout_from_pdf(self, sample_ceo_item, tmp_path):
         """Test extracting layout from PDF."""
-
-        html_gen = HTMLGenerator(sample_ceo_item)
+        # Generate HTML and PDF
+        html_gen = HTMLGenerator()
         html_gen.items = [sample_ceo_item]
+        html_gen.generate()
 
         pdf_path = tmp_path / "test.pdf"
         pdf_gen = PDFGenerator(html_gen.html)
         pdf_gen.dump(pdf_path)
 
-        generator = ALTOGenerator(pdf_path)
+        # Extract layout
+        generator = ALTOGenerator()
+        generator.pdf_path = pdf_path
         pages = generator.extract_layout_from_pdf()
 
         assert len(pages) > 0
@@ -88,12 +105,16 @@ class TestALTOGenerator:
 
     def test_extract_layout_has_blocks(self, sample_ceo_item, tmp_path):
         """Test that extracted layout contains text blocks."""
-        html_gen = HTMLGenerator(sample_ceo_item)
+        html_gen = HTMLGenerator()
+        html_gen.items = [sample_ceo_item]
+        html_gen.generate()
+
         pdf_path = tmp_path / "test.pdf"
         pdf_gen = PDFGenerator(html_gen.html)
         pdf_gen.dump(pdf_path)
 
-        generator = ALTOGenerator(pdf_path)
+        generator = ALTOGenerator()
+        generator.pdf_path = pdf_path
         pages = generator.extract_layout_from_pdf()
 
         # Should have at least one page with blocks
@@ -104,26 +125,34 @@ class TestALTOGenerator:
 
     def test_generate_alto_xml(self, sample_ceo_item, tmp_path):
         """Test generating ALTO XML structure."""
-        html_gen = HTMLGenerator(sample_ceo_item)
+        html_gen = HTMLGenerator()
+        html_gen.items = [sample_ceo_item]
+        html_gen.generate()
+
         pdf_path = tmp_path / "test.pdf"
         pdf_gen = PDFGenerator(html_gen.html)
         pdf_gen.dump(pdf_path)
 
-        generator = ALTOGenerator(pdf_path)
-        alto_xml = generator.generate_alto_xml()
+        generator = ALTOGenerator()
+        generator.pdf_path = pdf_path
+        alto_xml = generator.alto
 
         assert alto_xml is not None
-        assert alto_xml.tag == "{http://www.loc.gov/standards/alto/ns-v4#}alto"
+        assert alto_xml.tag == f"{{{ALTOGenerator.ALTO_NAMESPACE}}}alto"
 
     def test_alto_xml_has_description(self, sample_ceo_item, tmp_path):
         """Test ALTO XML contains Description section."""
-        html_gen = HTMLGenerator(sample_ceo_item)
+        html_gen = HTMLGenerator()
+        html_gen.items = [sample_ceo_item]
+        html_gen.generate()
+
         pdf_path = tmp_path / "test.pdf"
         pdf_gen = PDFGenerator(html_gen.html)
         pdf_gen.dump(pdf_path)
 
-        generator = ALTOGenerator(pdf_path)
-        alto_xml = generator.generate_alto_xml()
+        generator = ALTOGenerator()
+        generator.pdf_path = pdf_path
+        alto_xml = generator.alto
 
         namespaces = {"alto": ALTOGenerator.ALTO_NAMESPACE}
         description = alto_xml.find("alto:Description", namespaces)
@@ -131,13 +160,17 @@ class TestALTOGenerator:
 
     def test_alto_xml_has_layout(self, sample_ceo_item, tmp_path):
         """Test ALTO XML contains Layout section."""
-        html_gen = HTMLGenerator(sample_ceo_item)
+        html_gen = HTMLGenerator()
+        html_gen.items = [sample_ceo_item]
+        html_gen.generate()
+
         pdf_path = tmp_path / "test.pdf"
         pdf_gen = PDFGenerator(html_gen.html)
         pdf_gen.dump(pdf_path)
 
-        generator = ALTOGenerator(pdf_path)
-        alto_xml = generator.generate_alto_xml()
+        generator = ALTOGenerator()
+        generator.pdf_path = pdf_path
+        alto_xml = generator.alto
 
         namespaces = {"alto": ALTOGenerator.ALTO_NAMESPACE}
         layout = alto_xml.find("alto:Layout", namespaces)
@@ -145,13 +178,17 @@ class TestALTOGenerator:
 
     def test_alto_xml_has_pages(self, sample_ceo_item, tmp_path):
         """Test ALTO XML contains Page elements."""
-        html_gen = HTMLGenerator(sample_ceo_item)
+        html_gen = HTMLGenerator()
+        html_gen.items = [sample_ceo_item]
+        html_gen.generate()
+
         pdf_path = tmp_path / "test.pdf"
         pdf_gen = PDFGenerator(html_gen.html)
         pdf_gen.dump(pdf_path)
 
-        generator = ALTOGenerator(pdf_path)
-        alto_xml = generator.generate_alto_xml()
+        generator = ALTOGenerator()
+        generator.pdf_path = pdf_path
+        alto_xml = generator.alto
 
         namespaces = {"alto": ALTOGenerator.ALTO_NAMESPACE}
         pages = alto_xml.findall(".//alto:Page", namespaces)
@@ -159,13 +196,17 @@ class TestALTOGenerator:
 
     def test_alto_xml_page_attributes(self, sample_ceo_item, tmp_path):
         """Test Page elements have required attributes."""
-        html_gen = HTMLGenerator(sample_ceo_item)
+        html_gen = HTMLGenerator()
+        html_gen.items = [sample_ceo_item]
+        html_gen.generate()
+
         pdf_path = tmp_path / "test.pdf"
         pdf_gen = PDFGenerator(html_gen.html)
         pdf_gen.dump(pdf_path)
 
-        generator = ALTOGenerator(pdf_path)
-        alto_xml = generator.generate_alto_xml()
+        generator = ALTOGenerator()
+        generator.pdf_path = pdf_path
+        alto_xml = generator.alto
 
         namespaces = {"alto": ALTOGenerator.ALTO_NAMESPACE}
         page = alto_xml.find(".//alto:Page", namespaces)
@@ -178,12 +219,16 @@ class TestALTOGenerator:
 
     def test_alto_generator_to_string(self, sample_ceo_item, tmp_path):
         """Test generating ALTO XML as string."""
-        html_gen = HTMLGenerator(sample_ceo_item)
+        html_gen = HTMLGenerator()
+        html_gen.items = [sample_ceo_item]
+        html_gen.generate()
+
         pdf_path = tmp_path / "test.pdf"
         pdf_gen = PDFGenerator(html_gen.html)
         pdf_gen.dump(pdf_path)
 
-        generator = ALTOGenerator(pdf_path)
+        generator = ALTOGenerator()
+        generator.pdf_path = pdf_path
         xml_string = generator.to_string()
 
         assert isinstance(xml_string, str)
@@ -192,12 +237,16 @@ class TestALTOGenerator:
 
     def test_alto_generator_to_string_pretty_print(self, sample_ceo_item, tmp_path):
         """Test generating formatted ALTO XML string."""
-        html_gen = HTMLGenerator(sample_ceo_item)
+        html_gen = HTMLGenerator()
+        html_gen.items = [sample_ceo_item]
+        html_gen.generate()
+
         pdf_path = tmp_path / "test.pdf"
         pdf_gen = PDFGenerator(html_gen.html)
         pdf_gen.dump(pdf_path)
 
-        generator = ALTOGenerator(pdf_path)
+        generator = ALTOGenerator()
+        generator.pdf_path = pdf_path
         xml_string = generator.to_string(pretty_print=True)
 
         assert isinstance(xml_string, str)
@@ -206,12 +255,16 @@ class TestALTOGenerator:
 
     def test_alto_generator_generate_file(self, sample_ceo_item, tmp_path):
         """Test generating ALTO XML file."""
-        html_gen = HTMLGenerator(sample_ceo_item)
+        html_gen = HTMLGenerator()
+        html_gen.items = [sample_ceo_item]
+        html_gen.generate()
+
         pdf_path = tmp_path / "test.pdf"
         pdf_gen = PDFGenerator(html_gen.html)
         pdf_gen.dump(pdf_path)
 
-        generator = ALTOGenerator(pdf_path)
+        generator = ALTOGenerator()
+        generator.pdf_path = pdf_path
         alto_path = tmp_path / "test.alto.xml"
         generator.dump(alto_path)
 
@@ -220,12 +273,16 @@ class TestALTOGenerator:
 
     def test_alto_generated_file_is_valid_xml(self, sample_ceo_item, tmp_path):
         """Test generated ALTO file is valid XML."""
-        html_gen = HTMLGenerator(sample_ceo_item)
+        html_gen = HTMLGenerator()
+        html_gen.items = [sample_ceo_item]
+        html_gen.generate()
+
         pdf_path = tmp_path / "test.pdf"
         pdf_gen = PDFGenerator(html_gen.html)
         pdf_gen.dump(pdf_path)
 
-        generator = ALTOGenerator(pdf_path)
+        generator = ALTOGenerator()
+        generator.pdf_path = pdf_path
         alto_path = tmp_path / "test.alto.xml"
         generator.dump(alto_path)
 
@@ -236,12 +293,16 @@ class TestALTOGenerator:
 
     def test_alto_file_has_correct_namespace(self, sample_ceo_item, tmp_path):
         """Test generated ALTO file has correct namespace."""
-        html_gen = HTMLGenerator(sample_ceo_item)
+        html_gen = HTMLGenerator()
+        html_gen.items = [sample_ceo_item]
+        html_gen.generate()
+
         pdf_path = tmp_path / "test.pdf"
         pdf_gen = PDFGenerator(html_gen.html)
         pdf_gen.dump(pdf_path)
 
-        generator = ALTOGenerator(pdf_path)
+        generator = ALTOGenerator()
+        generator.pdf_path = pdf_path
         alto_path = tmp_path / "test.alto.xml"
         generator.dump(alto_path)
 
@@ -250,13 +311,17 @@ class TestALTOGenerator:
         assert ALTOGenerator.ALTO_NAMESPACE in root.tag
 
     def test_alto_file_creates_parent_directories(self, sample_ceo_item, tmp_path):
-        """Test that generate() creates parent directories if needed."""
-        html_gen = HTMLGenerator(sample_ceo_item)
+        """Test that dump() creates parent directories if needed."""
+        html_gen = HTMLGenerator()
+        html_gen.items = [sample_ceo_item]
+        html_gen.generate()
+
         pdf_path = tmp_path / "test.pdf"
         pdf_gen = PDFGenerator(html_gen.html)
         pdf_gen.dump(pdf_path)
 
-        generator = ALTOGenerator(pdf_path)
+        generator = ALTOGenerator()
+        generator.pdf_path = pdf_path
         alto_path = tmp_path / "nested" / "dir" / "test.alto.xml"
         generator.dump(alto_path)
 
@@ -265,13 +330,17 @@ class TestALTOGenerator:
 
     def test_alto_has_word_level_segmentation(self, sample_ceo_item, tmp_path):
         """Test that ALTO XML contains word-level String elements."""
-        html_gen = HTMLGenerator(sample_ceo_item)
+        html_gen = HTMLGenerator()
+        html_gen.items = [sample_ceo_item]
+        html_gen.generate()
+
         pdf_path = tmp_path / "test.pdf"
         pdf_gen = PDFGenerator(html_gen.html)
         pdf_gen.dump(pdf_path)
 
-        generator = ALTOGenerator(pdf_path)
-        alto_xml = generator.generate_alto_xml()
+        generator = ALTOGenerator()
+        generator.pdf_path = pdf_path
+        alto_xml = generator.alto
 
         namespaces = {"alto": ALTOGenerator.ALTO_NAMESPACE}
         strings = alto_xml.findall(".//alto:String", namespaces)
@@ -291,13 +360,17 @@ class TestALTOGenerator:
 
     def test_alto_has_space_elements(self, sample_ceo_item, tmp_path):
         """Test that ALTO XML contains SP (space) elements between words."""
-        html_gen = HTMLGenerator(sample_ceo_item)
+        html_gen = HTMLGenerator()
+        html_gen.items = [sample_ceo_item]
+        html_gen.generate()
+
         pdf_path = tmp_path / "test.pdf"
         pdf_gen = PDFGenerator(html_gen.html)
         pdf_gen.dump(pdf_path)
 
-        generator = ALTOGenerator(pdf_path)
-        alto_xml = generator.generate_alto_xml()
+        generator = ALTOGenerator()
+        generator.pdf_path = pdf_path
+        alto_xml = generator.alto
 
         namespaces = {"alto": ALTOGenerator.ALTO_NAMESPACE}
         sp_elements = alto_xml.findall(".//alto:SP", namespaces)
@@ -319,13 +392,17 @@ class TestALTOGenerator:
 
     def test_alto_word_segmentation_content(self, sample_ceo_item, tmp_path):
         """Test that word segmentation produces individual words."""
-        html_gen = HTMLGenerator(sample_ceo_item)
+        html_gen = HTMLGenerator()
+        html_gen.items = [sample_ceo_item]
+        html_gen.generate()
+
         pdf_path = tmp_path / "test.pdf"
         pdf_gen = PDFGenerator(html_gen.html)
         pdf_gen.dump(pdf_path)
 
-        generator = ALTOGenerator(pdf_path)
-        alto_xml = generator.generate_alto_xml()
+        generator = ALTOGenerator()
+        generator.pdf_path = pdf_path
+        alto_xml = generator.alto
 
         namespaces = {"alto": ALTOGenerator.ALTO_NAMESPACE}
         strings = alto_xml.findall(".//alto:String", namespaces)
@@ -339,3 +416,26 @@ class TestALTOGenerator:
             assert word_count >= 1, (
                 f"String element should contain at least one word, got: {content}"
             )
+
+    def test_alto_with_test_pdf_file(self, test_pdf_path, tmp_path):
+        """Test ALTO generation using the pre-existing test PDF."""
+        generator = ALTOGenerator()
+        generator.pdf_path = test_pdf_path
+
+        # Test layout extraction
+        pages = generator.pages
+        assert len(pages) > 0
+
+        # Test ALTO XML generation
+        alto_xml = generator.alto
+        assert alto_xml is not None
+
+        # Test file output
+        alto_path = tmp_path / "test_output.alto.xml"
+        generator.dump(alto_path)
+        assert alto_path.exists()
+
+        # Verify the file is valid XML
+        tree = etree.parse(str(alto_path))
+        root = tree.getroot()
+        assert ALTOGenerator.ALTO_NAMESPACE in root.tag
