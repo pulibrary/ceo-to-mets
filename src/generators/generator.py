@@ -1,6 +1,6 @@
 import abc
 from pathlib import Path
-from typing import Union
+
 
 
 class Generator(abc.ABC):
@@ -8,7 +8,7 @@ class Generator(abc.ABC):
     def generate(self) -> None: ...
 
     @abc.abstractmethod
-    def dump(self, output_path: Union[str, Path]) -> None: ...
+    def dump(self, output_path: str|Path) -> None: ...
 
     def _clean_html_content(self, html_content: str) -> str:
         """Clean up HTML content for text extraction."""

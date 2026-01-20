@@ -646,6 +646,7 @@ class ALTOGenerator(Generator):
     ALTO_VERSION = "4.4"
 
     def __init__(self) -> None:
+        super().__init__()
         self._pdf_path = None
         self.pages = None
         self.docs = None
